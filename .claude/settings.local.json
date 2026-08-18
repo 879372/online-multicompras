@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v pyenv)",
+      "Bash(pyenv versions *)",
+      "Read(//usr/local/bin/**)",
+      "Bash(command -v python3.12)",
+      "Bash(pkill -f \"manage.py runserver 8765\")",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)",
+      "Bash(command -v npm)",
+      "Bash(command -v brew)",
+      "Bash(command -v curl)"
+    ]
+  }
+}

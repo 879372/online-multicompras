@@ -1,3 +1,40 @@
-from django.test import TestCase
+from django.contrib.auth import get_user_model
+from rest_framework import status
+from rest_framework.test import APITestCase
 
-# Create your tests here.
+from .models import PendingUpdate, Product
+
+
+class ProductApiTests(APITestCase):
+    def setUp(self):
+        self.active = Product.objects.create(name='Phone A', category='phone', price=1200, stock=3)
+        Product.objects.create(name='Phone hidden', category='phone', price=900, is_active=False)
+        self.staff = get_user_model().objects.create_user(username='owner', password='strong-pass', is_staff=True)
+
+    def test_public_catalog_only_returns_active_products(self):
+        response = self.client.get('/api/catalog/products/?search=Phone&category=phone')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['id'] for item in response.data], [self.active.id])
+
+    def test_admin_product_write_requires_staff(self):
+        response = self.client.post('/api/catalog/admin/products/', {'name': 'New', 'category': 'phone', 'price': '10.00'})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.client.force_authenticate(self.staff)
+        response = self.client.post('/api/catalog/admin/products/', {'name': 'New', 'category': 'phone', 'price': '10.00'})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_compare_at_price_must_be_greater_than_current_price(self):
+        self.client.force_authenticate(self.staff)
+        response = self.client.patch(f'/api/catalog/admin/products/{self.active.id}/', {'compare_at_price': '100.00'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_automation_can_create_but_cannot_approve_update(self):
+        bot = get_user_model().objects.create_user(username='n8n-bot')
+        self.client.force_authenticate(bot)
+        response = self.client.post('/api/catalog/pending-updates/', {
+            'product': self.active.id, 'proposed_price': '1100.00', 'raw_text': 'Phone A 1100',
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pending = PendingUpdate.objects.get()
+        response = self.client.post(f'/api/catalog/pending-updates/{pending.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

@@ -5,9 +5,17 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     category = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cash_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    installments = models.PositiveSmallIntegerField(default=12)
     stock = models.PositiveIntegerField(default=0)
     description = models.TextField(blank=True)
     image = models.URLField(null=True, blank=True)
+    variants = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Product options such as model, color and stock. Stored as a list of objects.',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -54,6 +62,8 @@ class PendingUpdate(models.Model):
         and the /approve/ API endpoint so both stay in sync."""
         from django.utils import timezone
 
+        if self.status != self.STATUS_PENDING:
+            return self.product
         if self.product:
             self.product.price = self.proposed_price
             if self.proposed_stock is not None:
@@ -69,10 +79,13 @@ class PendingUpdate(models.Model):
         self.status = self.STATUS_APPROVED
         self.resolved_at = timezone.now()
         self.save()
+        return self.product
 
     def reject(self):
         from django.utils import timezone
 
+        if self.status != self.STATUS_PENDING:
+            return
         self.status = self.STATUS_REJECTED
         self.resolved_at = timezone.now()
         self.save()

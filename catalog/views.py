@@ -1,7 +1,9 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+
+from accounts.permissions import AutomationCreateOrStaff
 
 from .models import PendingUpdate, Product
 from .serializers import PendingUpdateSerializer, ProductSerializer
@@ -24,11 +26,24 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
+class AdminProductViewSet(viewsets.ModelViewSet):
+    """Staff CRUD used by the private management panel.
+
+    This route is intentionally separate from the public read-only catalog and
+    from the pending-update endpoint used by the n8n automation.
+    """
+
+    queryset = Product.objects.all().order_by('-updated_at')
+    serializer_class = ProductSerializer
+    permission_classes = [IsAdminUser]
+
+
 class PendingUpdateViewSet(viewsets.ModelViewSet):
     """Owner-only: n8n posts here after the LLM extracts data from a supplier
     WhatsApp message; the owner approves or rejects from the admin or API."""
 
     serializer_class = PendingUpdateSerializer
+    permission_classes = [AutomationCreateOrStaff]
 
     def get_queryset(self):
         queryset = PendingUpdate.objects.all()
