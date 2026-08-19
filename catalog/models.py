@@ -1,16 +1,30 @@
 from django.db import models
 
 
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('name',)
+        verbose_name_plural = 'categories'
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     name = models.CharField(max_length=255)
-    category = models.CharField(max_length=100)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cash_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     installments = models.PositiveSmallIntegerField(default=12)
     stock = models.PositiveIntegerField(default=0)
     description = models.TextField(blank=True)
-    image = models.URLField(null=True, blank=True)
+    image = models.ImageField(upload_to='products/%Y/%m/', null=True, blank=True)
     variants = models.JSONField(
         default=list,
         blank=True,
@@ -70,11 +84,14 @@ class PendingUpdate(models.Model):
                 self.product.stock = self.proposed_stock
             self.product.save()
         else:
+            category = Category.objects.filter(is_active=True).first()
+            if category is None:
+                category = Category.objects.create(name='Sem categoria')
             self.product = Product.objects.create(
                 name=self.proposed_name,
                 price=self.proposed_price,
                 stock=self.proposed_stock or 0,
-                category='',
+                category=category,
             )
         self.status = self.STATUS_APPROVED
         self.resolved_at = timezone.now()

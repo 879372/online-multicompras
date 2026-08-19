@@ -2,26 +2,33 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import PendingUpdate, Product
+from .models import Category, PendingUpdate, Product
 
 
 class ProductApiTests(APITestCase):
     def setUp(self):
-        self.active = Product.objects.create(name='Phone A', category='phone', price=1200, stock=3)
-        Product.objects.create(name='Phone hidden', category='phone', price=900, is_active=False)
+        self.category = Category.objects.create(name='Phone')
+        self.active = Product.objects.create(name='Phone A', category=self.category, price=1200, stock=3)
+        Product.objects.create(name='Phone hidden', category=self.category, price=900, is_active=False)
         self.staff = get_user_model().objects.create_user(username='owner', password='strong-pass', is_staff=True)
 
     def test_public_catalog_only_returns_active_products(self):
-        response = self.client.get('/api/catalog/products/?search=Phone&category=phone')
+        response = self.client.get(f'/api/catalog/products/?search=Phone&category={self.category.id}')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual([item['id'] for item in response.data], [self.active.id])
 
     def test_admin_product_write_requires_staff(self):
-        response = self.client.post('/api/catalog/admin/products/', {'name': 'New', 'category': 'phone', 'price': '10.00'})
+        response = self.client.post('/api/catalog/admin/products/', {'name': 'New', 'category': self.category.id, 'price': '10.00'})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.client.force_authenticate(self.staff)
-        response = self.client.post('/api/catalog/admin/products/', {'name': 'New', 'category': 'phone', 'price': '10.00'})
+        response = self.client.post('/api/catalog/admin/products/', {'name': 'New', 'category': self.category.id, 'price': '10.00'})
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_public_categories_only_return_active_records(self):
+        Category.objects.create(name='Hidden', is_active=False)
+        response = self.client.get('/api/catalog/categories/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item['name'] for item in response.data], ['Phone'])
 
     def test_compare_at_price_must_be_greater_than_current_price(self):
         self.client.force_authenticate(self.staff)

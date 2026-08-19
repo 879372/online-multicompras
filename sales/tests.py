@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from catalog.models import Product
+from catalog.models import Category, Product
 
 from .models import Sale
 
@@ -10,7 +10,8 @@ from .models import Sale
 class SaleApiTests(APITestCase):
     def setUp(self):
         self.staff = get_user_model().objects.create_user(username='owner', password='strong-pass', is_staff=True)
-        self.product = Product.objects.create(name='Phone', category='phone', price=1000, stock=10)
+        category = Category.objects.create(name='Phone')
+        self.product = Product.objects.create(name='Phone', category=category, price=1000, stock=10)
         self.client.force_authenticate(self.staff)
 
     def test_create_sale_calculates_total_server_side(self):

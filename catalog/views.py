@@ -5,8 +5,20 @@ from rest_framework.response import Response
 
 from accounts.permissions import AutomationCreateOrStaff
 
-from .models import PendingUpdate, Product
-from .serializers import PendingUpdateSerializer, ProductSerializer
+from .models import Category, PendingUpdate, Product
+from .serializers import CategorySerializer, PendingUpdateSerializer, ProductSerializer
+
+
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
+    queryset = Category.objects.filter(is_active=True)
+
+
+class AdminCategoryViewSet(viewsets.ModelViewSet):
+    serializer_class = CategorySerializer
+    permission_classes = [IsAdminUser]
+    queryset = Category.objects.all()
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
@@ -16,13 +28,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Product.objects.filter(is_active=True)
+        queryset = Product.objects.filter(is_active=True, category__is_active=True).select_related('category')
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(name__icontains=search)
         category = self.request.query_params.get('category')
         if category:
-            queryset = queryset.filter(category=category)
+            queryset = queryset.filter(category_id=category)
         return queryset
 
 
@@ -33,7 +45,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     from the pending-update endpoint used by the n8n automation.
     """
 
-    queryset = Product.objects.all().order_by('-updated_at')
+    queryset = Product.objects.select_related('category').all().order_by('-updated_at')
     serializer_class = ProductSerializer
     permission_classes = [IsAdminUser]
 

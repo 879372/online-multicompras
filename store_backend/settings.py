@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'drf_spectacular',
+    'storages',
     'accounts',
     'catalog',
     'conversations',
@@ -128,14 +129,38 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+USE_S3 = env.bool('USE_S3', default=False)
+
 STORAGES = {
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
 
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+if USE_S3:
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'access_key': env('AWS_ACCESS_KEY_ID'),
+            'secret_key': env('AWS_SECRET_ACCESS_KEY'),
+            'bucket_name': env('AWS_STORAGE_BUCKET_NAME'),
+            'region_name': env('AWS_S3_REGION_NAME', default='auto'),
+            'endpoint_url': env('AWS_S3_ENDPOINT_URL'),
+            'addressing_style': env('AWS_S3_ADDRESSING_STYLE', default='virtual'),
+            'signature_version': 's3v4',
+            'default_acl': None,
+            'querystring_auth': True,
+            'querystring_expire': env.int('AWS_QUERYSTRING_EXPIRE', default=3600),
+            'file_overwrite': False,
+            'location': 'media',
+        },
+    }
+else:
+    STORAGES['default'] = {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    }
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = Path(env('MEDIA_ROOT', default=str(BASE_DIR / 'media')))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

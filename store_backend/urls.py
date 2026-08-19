@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django.conf import settings
 from django.http import JsonResponse
 from django.urls import include, path
+from django.views.static import serve
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -20,3 +22,6 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]
+
+if not settings.USE_S3:
+    urlpatterns.append(path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}))

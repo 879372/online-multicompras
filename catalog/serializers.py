@@ -1,10 +1,18 @@
 from rest_framework import serializers
 
-from .models import PendingUpdate, Product
+from .models import Category, PendingUpdate, Product
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
 
 
 class ProductSerializer(serializers.ModelSerializer):
     installment_value = serializers.SerializerMethodField()
+    category_name = serializers.CharField(source='category.name', read_only=True)
 
     def get_installment_value(self, obj):
         if not obj.installments:
@@ -32,7 +40,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'category', 'price', 'compare_at_price', 'cash_price',
+            'id', 'name', 'category', 'category_name', 'price', 'compare_at_price', 'cash_price',
             'installments', 'installment_value', 'stock', 'description',
             'image', 'variants', 'is_active', 'created_at', 'updated_at',
         ]
