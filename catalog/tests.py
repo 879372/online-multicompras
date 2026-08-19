@@ -18,6 +18,13 @@ class ProductApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual([item['id'] for item in response.data], [self.active.id])
 
+    def test_admin_products_are_paginated(self):
+        self.client.force_authenticate(self.staff)
+        response = self.client.get('/api/catalog/admin/products/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 2)
+        self.assertIn('results', response.data)
+
     def test_admin_product_write_requires_staff(self):
         response = self.client.post('/api/catalog/admin/products/', {'name': 'New', 'category': self.category.id, 'condition': self.condition.id, 'price': '10.00'})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

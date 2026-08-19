@@ -41,3 +41,9 @@ class SaleApiTests(APITestCase):
         response = self.client.get('/api/sales/dashboard/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('active_products', response.data)
+
+    def test_sales_are_paginated(self):
+        response = self.client.get('/api/sales/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('count', response.data)
+        self.assertIn('results', response.data)

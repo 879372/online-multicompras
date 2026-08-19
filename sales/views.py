@@ -1,5 +1,5 @@
 from django.http import FileResponse
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from catalog.models import PendingUpdate, Product
+from store_backend.pagination import AdminPageNumberPagination
 
 from .models import Sale
 from .serializers import SaleSerializer
@@ -14,10 +15,17 @@ from .warranty_pdf import build_warranty_pdf
 
 
 class SaleViewSet(viewsets.ModelViewSet):
-    queryset = Sale.objects.prefetch_related('items__product__condition').select_related('created_by').all().order_by('-created_at')
     serializer_class = SaleSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = AdminPageNumberPagination
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        queryset = Sale.objects.prefetch_related('items__product__condition').select_related('created_by').all().order_by('-created_at')
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(Q(customer_name__icontains=search) | Q(customer_phone__icontains=search))
+        return queryset
 
     @action(detail=True, methods=['get'], url_path='warranty')
     def warranty(self, request, pk=None):

@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
 from accounts.permissions import AutomationCreateOrStaff
+from store_backend.pagination import AdminPageNumberPagination
 
 from .models import Category, PendingUpdate, Product, ProductCondition
 from .serializers import CategorySerializer, PendingUpdateSerializer, ProductConditionSerializer, ProductSerializer
@@ -57,9 +58,16 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     from the pending-update endpoint used by the n8n automation.
     """
 
-    queryset = Product.objects.select_related('category', 'condition').all().order_by('-updated_at')
     serializer_class = ProductSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = AdminPageNumberPagination
+
+    def get_queryset(self):
+        queryset = Product.objects.select_related('category', 'condition').all().order_by('-updated_at')
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        return queryset
 
 
 class PendingUpdateViewSet(viewsets.ModelViewSet):
