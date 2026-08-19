@@ -15,15 +15,35 @@ class Category(models.Model):
         return self.name
 
 
+class ProductCondition(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('name',)
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
+    condition = models.ForeignKey(ProductCondition, on_delete=models.PROTECT, related_name='products')
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cash_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     installments = models.PositiveSmallIntegerField(default=12)
     stock = models.PositiveIntegerField(default=0)
     description = models.TextField(blank=True)
+    brand = models.CharField(max_length=100, blank=True)
+    model = models.CharField(max_length=150, blank=True)
+    color = models.CharField(max_length=100, blank=True)
+    storage = models.CharField(max_length=100, blank=True)
+    warranty_months = models.PositiveSmallIntegerField(default=0)
     image = models.ImageField(upload_to='products/%Y/%m/', null=True, blank=True)
     variants = models.JSONField(
         default=list,
@@ -87,11 +107,15 @@ class PendingUpdate(models.Model):
             category = Category.objects.filter(is_active=True).first()
             if category is None:
                 category = Category.objects.create(name='Sem categoria')
+            condition = ProductCondition.objects.filter(is_active=True).first()
+            if condition is None:
+                condition = ProductCondition.objects.create(name='Não informado')
             self.product = Product.objects.create(
                 name=self.proposed_name,
                 price=self.proposed_price,
                 stock=self.proposed_stock or 0,
                 category=category,
+                condition=condition,
             )
         self.status = self.STATUS_APPROVED
         self.resolved_at = timezone.now()

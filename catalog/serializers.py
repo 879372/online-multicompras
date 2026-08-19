@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Category, PendingUpdate, Product
+from .models import Category, PendingUpdate, Product, ProductCondition
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -10,9 +10,17 @@ class CategorySerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 
+class ProductConditionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductCondition
+        fields = ['id', 'name', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
 class ProductSerializer(serializers.ModelSerializer):
     installment_value = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
+    condition_name = serializers.CharField(source='condition.name', read_only=True)
 
     def get_installment_value(self, obj):
         if not obj.installments:
@@ -40,7 +48,9 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'category', 'category_name', 'price', 'compare_at_price', 'cash_price',
+            'id', 'name', 'category', 'category_name', 'condition', 'condition_name',
+            'brand', 'model', 'color', 'storage', 'warranty_months',
+            'price', 'purchase_price', 'compare_at_price', 'cash_price',
             'installments', 'installment_value', 'stock', 'description',
             'image', 'variants', 'is_active', 'created_at', 'updated_at',
         ]

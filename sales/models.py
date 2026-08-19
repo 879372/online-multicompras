@@ -14,6 +14,7 @@ class Sale(models.Model):
 
     customer_name = models.CharField(max_length=255)
     customer_phone = models.CharField(max_length=50, blank=True)
+    customer_city = models.CharField(max_length=150, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
@@ -30,6 +31,16 @@ class SaleItem(models.Model):
     product = models.ForeignKey('catalog.Product', related_name='sale_items', on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    condition_name = models.CharField(max_length=100, blank=True)
+    warranty_months = models.PositiveSmallIntegerField(default=0)
+    brand = models.CharField(max_length=100, blank=True)
+    model = models.CharField(max_length=150, blank=True)
+    color = models.CharField(max_length=100, blank=True)
+    storage = models.CharField(max_length=100, blank=True)
+    imei = models.CharField(max_length=50, blank=True)
+    serial_number = models.CharField(max_length=100, blank=True)
+    battery_health = models.PositiveSmallIntegerField(null=True, blank=True)
 
     @property
     def subtotal(self):

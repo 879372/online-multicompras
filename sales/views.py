@@ -1,7 +1,8 @@
+from django.http import FileResponse
 from django.db.models import Count, Sum
 from django.utils import timezone
 from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
@@ -9,13 +10,26 @@ from catalog.models import PendingUpdate, Product
 
 from .models import Sale
 from .serializers import SaleSerializer
+from .warranty_pdf import build_warranty_pdf
 
 
 class SaleViewSet(viewsets.ModelViewSet):
-    queryset = Sale.objects.prefetch_related('items__product').select_related('created_by').all().order_by('-created_at')
+    queryset = Sale.objects.prefetch_related('items__product__condition').select_related('created_by').all().order_by('-created_at')
     serializer_class = SaleSerializer
     permission_classes = [IsAdminUser]
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    @action(detail=True, methods=['get'], url_path='warranty')
+    def warranty(self, request, pk=None):
+        sale = self.get_object()
+        response = FileResponse(
+            build_warranty_pdf(sale),
+            content_type='application/pdf',
+            as_attachment=False,
+            filename=f'garantia-venda-{sale.id:06d}.pdf',
+        )
+        response['Content-Disposition'] = f'inline; filename="garantia-venda-{sale.id:06d}.pdf"'
+        return response
 
 
 @api_view(['GET'])

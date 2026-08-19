@@ -5,8 +5,8 @@ from rest_framework.response import Response
 
 from accounts.permissions import AutomationCreateOrStaff
 
-from .models import Category, PendingUpdate, Product
-from .serializers import CategorySerializer, PendingUpdateSerializer, ProductSerializer
+from .models import Category, PendingUpdate, Product, ProductCondition
+from .serializers import CategorySerializer, PendingUpdateSerializer, ProductConditionSerializer, ProductSerializer
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -21,6 +21,18 @@ class AdminCategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
 
 
+class ProductConditionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ProductConditionSerializer
+    permission_classes = [AllowAny]
+    queryset = ProductCondition.objects.filter(is_active=True)
+
+
+class AdminProductConditionViewSet(viewsets.ModelViewSet):
+    serializer_class = ProductConditionSerializer
+    permission_classes = [IsAdminUser]
+    queryset = ProductCondition.objects.all()
+
+
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """Public catalog, consumed by the React frontend and the n8n WhatsApp bot."""
 
@@ -28,7 +40,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Product.objects.filter(is_active=True, category__is_active=True).select_related('category')
+        queryset = Product.objects.filter(is_active=True, category__is_active=True, condition__is_active=True).select_related('category', 'condition')
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(name__icontains=search)
@@ -45,7 +57,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     from the pending-update endpoint used by the n8n automation.
     """
 
-    queryset = Product.objects.select_related('category').all().order_by('-updated_at')
+    queryset = Product.objects.select_related('category', 'condition').all().order_by('-updated_at')
     serializer_class = ProductSerializer
     permission_classes = [IsAdminUser]
 
