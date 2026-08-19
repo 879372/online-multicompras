@@ -9,7 +9,7 @@ class ServiceTokenAuthentication(authentication.BaseAuthentication):
     var change in Railway with no admin/shell step required. A dedicated
     header (rather than Authorization: Bearer) avoids colliding with
     JWTAuthentication, which also uses the Bearer scheme and would otherwise
-    raise on the shared secret before this class gets a chance to run."""
+    raise on the shared secret before this class gets a chance to run"""
 
     def authenticate(self, request):
         token = request.META.get('HTTP_X_N8N_TOKEN')
