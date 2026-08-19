@@ -66,7 +66,7 @@ class ProductSerializer(serializers.ModelSerializer):
     condition_name = serializers.CharField(source='condition.name', read_only=True)
 
     def get_installment_value(self, obj):
-        if not obj.installments:
+        if not obj.installments or obj.price is None:
             return None
         return obj.price / obj.installments
 
@@ -75,7 +75,10 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         price = attrs.get('price', getattr(self.instance, 'price', None))
+        is_active = attrs.get('is_active', getattr(self.instance, 'is_active', True))
         compare_at = attrs.get('compare_at_price', getattr(self.instance, 'compare_at_price', None))
+        if is_active and price is None:
+            raise serializers.ValidationError({'price': 'Defina o preço de venda antes de ativar o produto.'})
         if compare_at is not None and price is not None and compare_at < price:
             raise serializers.ValidationError({'compare_at_price': 'O preço original não pode ser menor que o preço atual.'})
         return attrs

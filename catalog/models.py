@@ -48,7 +48,7 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
     condition = models.ForeignKey(ProductCondition, on_delete=models.PROTECT, related_name='products')
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cash_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -192,7 +192,7 @@ class PendingUpdate(models.Model):
                 condition = ProductCondition.objects.create(name='Não informado')
             self.product = Product.objects.create(
                 name=self.proposed_name,
-                price=self.proposed_price,
+                price=None,
                 purchase_price=self.proposed_price,
                 stock=self.proposed_stock or 0,
                 category=category,
@@ -207,6 +207,7 @@ class PendingUpdate(models.Model):
                 warranty_provider=self.proposed_warranty_provider,
                 warranty_requires_seal=self.proposed_warranty_requires_seal,
                 variants=self.proposed_variants,
+                is_active=False,
             )
         if self.supplier:
             SupplierOffer.objects.update_or_create(

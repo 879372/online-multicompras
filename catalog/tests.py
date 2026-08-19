@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -80,3 +81,19 @@ class ProductApiTests(APITestCase):
         offer = SupplierOffer.objects.get(product=self.active, supplier=supplier)
         self.assertEqual(offer.purchase_price, 760)
         self.assertEqual(offer.source_text, pending.raw_text)
+
+    def test_supplier_import_creates_inactive_drafts_without_sale_price(self):
+        call_command('import_supplier_list_20260819', verbosity=0)
+        drafts = Product.objects.filter(is_active=False, price__isnull=True)
+        self.assertGreater(drafts.count(), 50)
+        self.assertTrue(Supplier.objects.filter(name='RM Cell').exists())
+        self.assertTrue(SupplierOffer.objects.filter(supplier__name='Tony Cell').exists())
+
+    def test_product_cannot_be_activated_without_sale_price(self):
+        self.active.price = None
+        self.active.is_active = False
+        self.active.save()
+        self.client.force_authenticate(self.staff)
+        response = self.client.patch(f'/api/catalog/admin/products/{self.active.id}/', {'is_active': True})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('price', response.data)
