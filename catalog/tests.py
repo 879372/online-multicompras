@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Category, PendingUpdate, Product, ProductCondition
+from .models import Category, PendingUpdate, Product, ProductCondition, Supplier, SupplierOffer
 
 
 class ProductApiTests(APITestCase):
@@ -53,3 +53,30 @@ class ProductApiTests(APITestCase):
         pending = PendingUpdate.objects.get()
         response = self.client.post(f'/api/catalog/pending-updates/{pending.id}/approve/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_approved_supplier_update_records_cost_without_overwriting_sale_price(self):
+        supplier = Supplier.objects.create(name='RM Cell')
+        pending = PendingUpdate.objects.create(
+            product=self.active,
+            supplier=supplier,
+            proposed_price='760.00',
+            proposed_stock=4,
+            proposed_ram='4 GB',
+            proposed_storage='128 GB',
+            proposed_connectivity='4G',
+            proposed_warranty_months=12,
+            proposed_warranty_provider='Fabricante',
+            proposed_variants=[{'color': 'Preto', 'stock': 2}],
+            raw_text='POCO C71 4+128 preto R$ 760',
+        )
+
+        pending.approve()
+        self.active.refresh_from_db()
+
+        self.assertEqual(self.active.price, 1200)
+        self.assertEqual(self.active.purchase_price, 760)
+        self.assertEqual(self.active.ram, '4 GB')
+        self.assertEqual(self.active.warranty_provider, 'Fabricante')
+        offer = SupplierOffer.objects.get(product=self.active, supplier=supplier)
+        self.assertEqual(offer.purchase_price, 760)
+        self.assertEqual(offer.source_text, pending.raw_text)

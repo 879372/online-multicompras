@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from accounts.permissions import AutomationCreateOrStaff
 from store_backend.pagination import AdminPageNumberPagination
 
-from .models import Category, PendingUpdate, Product, ProductCondition
-from .serializers import CategorySerializer, PendingUpdateSerializer, ProductConditionSerializer, ProductSerializer
+from .models import Category, PendingUpdate, Product, ProductCondition, Supplier, SupplierOffer
+from .serializers import CategorySerializer, PendingUpdateSerializer, ProductConditionSerializer, ProductSerializer, SupplierOfferSerializer, SupplierSerializer
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -32,6 +32,33 @@ class AdminProductConditionViewSet(viewsets.ModelViewSet):
     serializer_class = ProductConditionSerializer
     permission_classes = [IsAdminUser]
     queryset = ProductCondition.objects.all()
+
+
+class SupplierViewSet(viewsets.ModelViewSet):
+    serializer_class = SupplierSerializer
+    permission_classes = [IsAdminUser]
+    pagination_class = AdminPageNumberPagination
+
+    def get_queryset(self):
+        queryset = Supplier.objects.all()
+        search = self.request.query_params.get('search', '').strip()
+        return queryset.filter(name__icontains=search) if search else queryset
+
+
+class SupplierOfferViewSet(viewsets.ModelViewSet):
+    serializer_class = SupplierOfferSerializer
+    permission_classes = [IsAdminUser]
+    pagination_class = AdminPageNumberPagination
+
+    def get_queryset(self):
+        queryset = SupplierOffer.objects.select_related('product', 'supplier')
+        product = self.request.query_params.get('product')
+        supplier = self.request.query_params.get('supplier')
+        if product:
+            queryset = queryset.filter(product_id=product)
+        if supplier:
+            queryset = queryset.filter(supplier_id=supplier)
+        return queryset
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
