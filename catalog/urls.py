@@ -1,6 +1,7 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import AdminCategoryViewSet, AdminProductConditionViewSet, AdminProductViewSet, CategoryViewSet, PendingUpdateViewSet, ProductConditionViewSet, ProductViewSet, SupplierOfferViewSet, SupplierViewSet
+from .views import AdminCategoryViewSet, AdminProductConditionViewSet, AdminProductViewSet, CategoryViewSet, PendingUpdateViewSet, ProductConditionViewSet, ProductViewSet, SupplierOfferViewSet, SupplierViewSet, WarrantyRulesView
 
 router = DefaultRouter()
 router.register('products', ProductViewSet, basename='product')
@@ -13,4 +14,4 @@ router.register('admin/conditions', AdminProductConditionViewSet, basename='admi
 router.register('admin/suppliers', SupplierViewSet, basename='supplier')
 router.register('admin/supplier-offers', SupplierOfferViewSet, basename='supplier-offer')
 
-urlpatterns = router.urls
+urlpatterns = [path('warranty-rules/', WarrantyRulesView.as_view(), name='warranty-rules'), *router.urls]

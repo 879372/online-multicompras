@@ -64,11 +64,18 @@ class ProductSerializer(serializers.ModelSerializer):
     installment_value = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
     condition_name = serializers.CharField(source='condition.name', read_only=True)
+    warranty_rule = serializers.SerializerMethodField()
 
     def get_installment_value(self, obj):
         if not obj.installments or obj.price is None:
             return None
         return obj.price / obj.installments
+
+    def get_warranty_rule(self, obj):
+        from .warranty_rules import resolve_warranty
+
+        rule = resolve_warranty(obj.brand, obj.model or obj.name, obj.condition.name)
+        return rule['label'] if rule else None
 
     def validate_variants(self, value):
         return validate_variant_list(value)
@@ -88,11 +95,12 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'category', 'category_name', 'condition', 'condition_name',
             'brand', 'model', 'color', 'ram', 'storage', 'connectivity', 'origin',
-            'warranty_months', 'warranty_provider', 'warranty_requires_seal',
+            'warranty_months', 'warranty_provider', 'warranty_requires_seal', 'warranty_rule',
             'price', 'purchase_price', 'compare_at_price', 'cash_price',
             'installments', 'installment_value', 'stock', 'description',
             'image', 'variants', 'is_active', 'created_at', 'updated_at',
         ]
+        read_only_fields = ['warranty_months', 'warranty_provider', 'warranty_rule']
 
 
 class PendingUpdateSerializer(serializers.ModelSerializer):
@@ -116,4 +124,7 @@ class PendingUpdateSerializer(serializers.ModelSerializer):
             'proposed_warranty_provider', 'proposed_warranty_requires_seal',
             'proposed_variants', 'confidence', 'raw_text', 'status', 'created_at', 'resolved_at',
         ]
-        read_only_fields = ['status', 'created_at', 'resolved_at']
+        read_only_fields = [
+            'proposed_warranty_months', 'proposed_warranty_provider',
+            'status', 'created_at', 'resolved_at',
+        ]

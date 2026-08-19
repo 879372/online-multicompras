@@ -78,6 +78,18 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        from .warranty_rules import resolve_warranty
+
+        condition_name = self.condition.name if self.condition_id else ''
+        rule = resolve_warranty(self.brand, self.model or self.name, condition_name)
+        if rule:
+            self.warranty_months = rule['months']
+            self.warranty_provider = rule['provider']
+            if kwargs.get('update_fields') is not None:
+                kwargs['update_fields'] = set(kwargs['update_fields']) | {'warranty_months', 'warranty_provider'}
+        super().save(*args, **kwargs)
+
 
 class SupplierOffer(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='supplier_offers')

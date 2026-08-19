@@ -14,7 +14,7 @@ class SaleApiTests(APITestCase):
         condition = ProductCondition.objects.get(name='Seminovo Premium')
         self.product = Product.objects.create(
             name='Phone', category=category, condition=condition, price=1000,
-            purchase_price=700, warranty_months=3, brand='Apple', model='iPhone 15', stock=10,
+            purchase_price=700, brand='Apple', model='iPhone 15', stock=10,
         )
         self.client.force_authenticate(self.staff)
 
@@ -27,7 +27,7 @@ class SaleApiTests(APITestCase):
         self.assertEqual(Sale.objects.get().total, 1900)
         item = Sale.objects.get().items.get()
         self.assertEqual(item.condition_name, 'Seminovo Premium')
-        self.assertEqual(item.warranty_months, 3)
+        self.assertEqual(item.warranty_months, 6)
         self.assertEqual(item.unit_cost, 700)
 
     def test_warranty_pdf_is_generated(self):

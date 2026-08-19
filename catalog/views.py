@@ -2,12 +2,21 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.permissions import AutomationCreateOrStaff
 from store_backend.pagination import AdminPageNumberPagination
 
 from .models import Category, PendingUpdate, Product, ProductCondition, Supplier, SupplierOffer
 from .serializers import CategorySerializer, PendingUpdateSerializer, ProductConditionSerializer, ProductSerializer, SupplierOfferSerializer, SupplierSerializer
+from .warranty_rules import public_warranty_rules
+
+
+class WarrantyRulesView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(public_warranty_rules())
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):

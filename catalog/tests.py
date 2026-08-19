@@ -97,3 +97,27 @@ class ProductApiTests(APITestCase):
         response = self.client.patch(f'/api/catalog/admin/products/{self.active.id}/', {'is_active': True})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('price', response.data)
+
+    def test_warranty_is_derived_from_brand_and_condition(self):
+        premium = ProductCondition.objects.get(name='Seminovo Premium')
+        cases = [
+            ('Xiaomi', 'Poco X8 Pro', self.condition, 6, 'AstroTech'),
+            ('Apple', 'iPhone 16', self.condition, 12, 'Fabricante'),
+            ('Apple', 'iPhone 15', ProductCondition.objects.get(name='Seminovo'), 4, 'AstroTech'),
+            ('Apple', 'iPhone 15 Pro', premium, 6, 'AstroTech'),
+        ]
+        for index, (brand, model, condition, months, provider) in enumerate(cases):
+            product = Product.objects.create(
+                name=f'Warranty product {index}', category=self.category,
+                condition=condition, brand=brand, model=model, price=100,
+                warranty_months=99, warranty_provider='Manual',
+            )
+            self.assertEqual(product.warranty_months, months)
+            self.assertEqual(product.warranty_provider, provider)
+
+    def test_api_exposes_warranty_rules(self):
+        response = self.client.get('/api/catalog/warranty-rules/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual({rule['key'] for rule in response.data}, {
+            'xiaomi', 'iphone_new', 'iphone_preowned', 'iphone_preowned_premium',
+        })
